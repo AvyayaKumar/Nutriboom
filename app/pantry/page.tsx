@@ -15,18 +15,7 @@ interface PantryItem {
 }
 
 export default function PantryPage() {
-  const initialItems = [
-    { id: '1', name: 'Basmati Rice', category: 'Grains', quantity: 2, unit: 'kg', lowStock: false },
-    { id: '2', name: 'Toor Dal', category: 'Lentils', quantity: 0.5, unit: 'kg', lowStock: true },
-    { id: '3', name: 'Turmeric Powder', category: 'Spices', quantity: 100, unit: 'g', lowStock: false },
-    { id: '4', name: 'Garam Masala', category: 'Spices', quantity: 50, unit: 'g', lowStock: true },
-    { id: '5', name: 'Ghee', category: 'Fats', quantity: 500, unit: 'ml', lowStock: false },
-    { id: '6', name: 'Paneer', category: 'Dairy', quantity: 200, unit: 'g', expiryDate: '2025-01-25', lowStock: false },
-    { id: '7', name: 'Tomatoes', category: 'Vegetables', quantity: 1, unit: 'kg', expiryDate: '2025-01-22', lowStock: false },
-    { id: '8', name: 'Onions', category: 'Vegetables', quantity: 2, unit: 'kg', lowStock: false },
-  ];
-
-  const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialItems);
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
 
   // Load pantry from localStorage on mount
   useEffect(() => {
@@ -74,10 +63,31 @@ export default function PantryPage() {
     }
   };
 
+  const getIncrement = (unit: string): number => {
+    switch (unit) {
+      case 'kg':
+      case 'l':
+        return 0.1; // 100g or 100ml
+      case 'g':
+      case 'ml':
+        return 10; // 10g or 10ml
+      case 'pcs':
+        return 1; // 1 piece
+      default:
+        return 1;
+    }
+  };
+
   const updateQuantity = (id: string, delta: number) => {
-    setPantryItems(pantryItems.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
-    ));
+    setPantryItems(pantryItems.map(item => {
+      if (item.id === id) {
+        const increment = getIncrement(item.unit);
+        const newQuantity = Math.max(0, item.quantity + (delta * increment));
+        // Round to 2 decimal places to avoid floating point issues
+        return { ...item, quantity: Math.round(newQuantity * 100) / 100 };
+      }
+      return item;
+    }));
   };
 
   const removeItem = (id: string) => {
@@ -242,7 +252,7 @@ export default function PantryPage() {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-3 bg-gray-700 rounded-lg px-4 py-2">
                       <button
-                        onClick={() => updateQuantity(item.id, -0.1)}
+                        onClick={() => updateQuantity(item.id, -1)}
                         className="text-gray-400 hover:text-white transition"
                       >
                         <Minus className="h-4 w-4" />
@@ -251,7 +261,7 @@ export default function PantryPage() {
                         {item.quantity} {item.unit}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.id, 0.1)}
+                        onClick={() => updateQuantity(item.id, 1)}
                         className="text-gray-400 hover:text-white transition"
                       >
                         <Plus className="h-4 w-4" />
