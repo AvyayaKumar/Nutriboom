@@ -1,18 +1,57 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { 
-  Utensils, User, Activity, TrendingUp, Calendar, 
-  MessageSquare, Sparkles, LogOut, Menu 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import {
+  Utensils, User, Activity, TrendingUp, Calendar,
+  MessageSquare, Sparkles, LogOut, Menu
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  
-  // Mock user data - replace with actual Firebase data
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
   const userData = {
-    name: 'Rajesh Kumar',
-    email: 'rajesh@example.com',
+    name: user.displayName || user.email?.split('@')[0] || 'User',
+    email: user.email || '',
     age: 32,
     goal: 'Weight Loss',
     calorieGoal: 1800,
@@ -56,9 +95,9 @@ export default function DashboardPage() {
                 <Link href="/account" className="h-10 w-10 rounded-full bg-emerald-600 flex items-center justify-center hover:bg-emerald-700 transition cursor-pointer">
                   <User className="h-6 w-6 text-white" />
                 </Link>
-                <Link href="/account" className="text-gray-400 hover:text-white">
+                <button onClick={handleLogout} className="text-gray-400 hover:text-white" title="Logout">
                   <LogOut className="h-5 w-5" />
-                </Link>
+                </button>
               </div>
             </div>
           </div>
